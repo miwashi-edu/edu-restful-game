@@ -2,11 +2,12 @@ const Router = require('express').Router();
 const {npcs} = require('./npc');
 
 const {
-    validateAndMovePlayer,
+    players,
     obstacles,
     groundTiles,
     skyTiles,
     getPlayer,
+    validateAndMovePlayer,
     CANVAS_WIDTH,
     CANVAS_HEIGHT
 } = require('./world');
@@ -19,6 +20,18 @@ Router.get('/canvas-settings', (req, res) => {
 Router.post('/get-player', (req, res) => {
     const { uuid } = req.body;
     res.json(getPlayer(uuid));
+});
+
+Router.post('/get-players', (req, res) => {
+    const { uuid } = req.body;
+    const filteredPlayers = {};
+
+    for (const [key, value] of Object.entries(players)) {
+        if (key !== uuid) {
+            filteredPlayers[key] = value;
+        }
+    }
+    res.json(Object.values(filteredPlayers));
 });
 
 Router.get('/npcs', (req, res) => {

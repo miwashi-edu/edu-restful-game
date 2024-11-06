@@ -105,6 +105,7 @@ function isValidMove(player, x, y) {
 
 module.exports = {
     getPlayer
+    , players
     , obstacles
     , groundTiles
     , skyTiles

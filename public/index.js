@@ -7,12 +7,14 @@ let npcs = [];
 let floorTiles = [];
 let obstacles = [];
 let skyTiles = [];
+let players = [];
 
 async function setupGame() {
     initializeCanvas();
     player = await initializePlayer(player);
     addKeyboardEventListeners();
     setInterval(getNPC, 100);
+    setInterval(getPlayers, 100);
     fetchWorldData();
     startAnimation();
 }
@@ -61,17 +63,48 @@ function initializePlayer(player) {
         });
 }
 
-// Example setCookie function (adapt as necessary for your environment)
 function setCookie(name, value, days = 7) {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
     document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
 }
 
-// Example getCookie function
 function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+function getPlayers() {
+    const uuid = getCookie('uuid') || 'missing-uuid';
+    fetch('/get-players', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ uuid: uuid })
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(fetchedPlayers => {
+            if (fetchedPlayers.length === 0) {
+
+                return;
+            }
+            players = fetchedPlayers.map(player => ({
+                uuid: player.uuid,
+                x: player.x,
+                y: player.y,
+                size: player.size || 50,
+                color: player.color || '#FF0000'
+            }));
+        })
+        .catch(error => {
+            console.error('Error fetching players:', error);
+        });
 }
 
 
@@ -186,11 +219,19 @@ function drawNPCs() {
     });
 }
 
+function drawPlayers(players) {
+    players.forEach(player => {
+        ctx.fillStyle = player.color || '#8B4513';
+        ctx.fillRect(player.x, player.y, player.size, player.size);
+    });
+}
+
 function startAnimation() {
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawPlayer(player);
         drawNPCs();
+        drawPlayers(players);
         drawObjects(obstacles, '#808080');
         //drawObjects(floorTiles, '#8B4513');
         //drawObjects(skyTiles, '#ADD8E6');
