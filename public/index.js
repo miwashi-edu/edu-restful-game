@@ -30,7 +30,7 @@ function initializeCanvas() {
         .catch(error => console.error('Error fetching canvas settings:', error));
 }
 
-function initializePlayer(player) {
+function initializePlayer(player) {  
     const uuid = getCookie('uuid') || 'missing-uuid';
     return fetch('/get-player', {
         method: 'POST',
@@ -229,12 +229,13 @@ function drawPlayers(players) {
 function startAnimation() {
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawObjects(floorTiles, '#8B4513');
         drawPlayer(player);
         drawNPCs();
         drawPlayers(players);
         drawObjects(obstacles, '#808080');
-        //drawObjects(floorTiles, '#8B4513');
-        //drawObjects(skyTiles, '#ADD8E6');
+
+        drawObjects(skyTiles, '#ADD8E6');
         requestAnimationFrame(animate);
     }
     requestAnimationFrame(animate);
