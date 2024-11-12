@@ -2,19 +2,19 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
 let player = {};
-let npcs = [];
 
 let floorTiles = [];
 let obstacles = [];
 let skyTiles = [];
 let players = [];
+let npcs = [];
 
 async function setupGame() {
     initializeCanvas();
     player = await initializePlayer(player);
     addKeyboardEventListeners();
-    setInterval(getNPC, 100);
-    setInterval(getPlayers, 100);
+    setInterval(fetchNPC, 100);
+    setInterval(fetchPlayers, 100);
     fetchWorldData();
     startAnimation();
 }
@@ -30,7 +30,7 @@ function initializeCanvas() {
         .catch(error => console.error('Error fetching canvas settings:', error));
 }
 
-function initializePlayer(player) {  
+function initializePlayer(player) {
     const uuid = getCookie('uuid') || 'missing-uuid';
     return fetch('/get-player', {
         method: 'POST',
@@ -63,18 +63,7 @@ function initializePlayer(player) {
         });
 }
 
-function setCookie(name, value, days = 7) {
-    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
-}
-
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
-function getPlayers() {
+function fetchPlayers() {
     const uuid = getCookie('uuid') || 'missing-uuid';
     fetch('/get-players', {
         method: 'POST',
@@ -91,7 +80,6 @@ function getPlayers() {
         })
         .then(fetchedPlayers => {
             if (fetchedPlayers.length === 0) {
-
                 return;
             }
             players = fetchedPlayers.map(player => ({
@@ -99,7 +87,7 @@ function getPlayers() {
                 x: player.x,
                 y: player.y,
                 size: player.size || 50,
-                color: player.color || '#FF0000'
+                color: hashUUIDtoColor(player.uuid)  // Use the hash function to generate a color based on UUID
             }));
         })
         .catch(error => {
@@ -107,8 +95,22 @@ function getPlayers() {
         });
 }
 
+function hashUUIDtoColor(uuid) {
+    let hash = 0;
+    for (let i = 0; i < uuid.length; i++) {
+        hash = uuid.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+        const value = (hash >> (i * 8)) & 0xFF;
+        color += ('00' + value.toString(16)).substr(-2);
+    }
+    return color;
+}
 
-function getNPC() {
+
+
+function fetchNPC() {
     fetch('/npcs')
         .then(response => {
             if (!response.ok) {
@@ -154,12 +156,39 @@ function fetchWorldData() {
         .catch(error => console.error('Error fetching sky objects:', error));
 }
 
-function drawObjects(objects, color) {
+function drawObjects(objects, color, title) {
     ctx.fillStyle = color;
     objects.forEach(obj => {
-        ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+        if (obj.tile) {
+            const img = new Image();
+            img.onload = function() {
+                ctx.strokeStyle = color;
+                ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+                ctx.strokeStyle = 'white';
+                ctx.fillStyle = 'white';
+                ctx.font = '16px Arial';
+                ctx.fillText(title, obj.x + 5, obj.y + 20);
+                ctx.drawImage(img, obj.x, obj.y, obj.width, obj.height);
+            };
+            img.onerror = function(e) {
+                console.error("Error loading image", img.src, e);
+            };
+            ctx.strokeStyle = color;
+            ctx.strokeStyle = 'white';
+            ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+            img.src = `./tiles/${obj.tile}.svg`;
+            ctx.fillText(title, obj.x + 5, obj.y + 20);
+        } else {
+            ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+            ctx.strokeStyle = 'white';
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.fillText(title, obj.x + 5, obj.y + 20);
+        }
     });
 }
+
+
 
 
 function addKeyboardEventListeners() {
@@ -229,13 +258,13 @@ function drawPlayers(players) {
 function startAnimation() {
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawObjects(floorTiles, '#8B4513');
+        drawObjects(floorTiles, '#8B4513', 'floor');
         drawPlayer(player);
         drawNPCs();
         drawPlayers(players);
-        drawObjects(obstacles, '#808080');
+        drawObjects(obstacles, '#808080','obsacle');
 
-        drawObjects(skyTiles, '#ADD8E6');
+        drawObjects(skyTiles, '#ADD8E6', 'sky');
         requestAnimationFrame(animate);
     }
     requestAnimationFrame(animate);

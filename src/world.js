@@ -37,7 +37,8 @@ function generateLevelObjects(type, numObjects) {
             y: Math.floor(Math.random() * GRID_ROWS) * GRID_SIZE,
             width: GRID_SIZE,
             height: GRID_SIZE,
-            type: type
+            type: type,
+            tile: 'tile'
         });
     }
     return objects;
